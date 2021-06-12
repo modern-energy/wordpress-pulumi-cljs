@@ -1,0 +1,3 @@
+{:paths ["src"]
+ :deps {modern-energy/pulumi-cljs {:local/root "/Users/luke/modern-energy/pulumi-cljs"}
+        thheller/shadow-cljs {:mvn/version "2.14.4"}}}

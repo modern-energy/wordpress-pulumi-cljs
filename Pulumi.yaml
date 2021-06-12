@@ -1,0 +1,3 @@
+name: wordpress-example
+runtime: nodejs
+description: An exaple of using Pulumi+CLJS to deploy Wordpress on AWS
