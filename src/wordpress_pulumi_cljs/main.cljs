@@ -12,9 +12,7 @@
   "Construct EFS filesystem & related resources"
   [provider]
   (let [efs (p/resource aws/efs.FileSystem (p/id) provider
-              {:encrypted true
-               :throughputMode "provisioned"
-               :provisionedThroughputInMibps 1}
+              {:encrypted true}
               {:provider provider})
         sg (p/resource aws/ec2.SecurityGroup (p/id "filesystem") efs
              {:vpcId (p/cfg "vpc")
@@ -110,6 +108,13 @@
          :fromPort 2049
          :toPort 2049
          :securityGroupId (-> efs :security-group :id)
+         :sourceSecurityGroupId (-> service :security-group :id)})
+      (p/resource aws/ec2.SecurityGroupRule (p/id "db-ingress") (:security-group db)
+        {:type "ingress"
+         :protocol "tcp"
+         :fromPort 3306
+         :toPort 3306
+         :securityGroupId (-> db :security-group :id)
          :sourceSecurityGroupId (-> service :security-group :id)})
       service)))
 
