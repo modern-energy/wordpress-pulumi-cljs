@@ -66,18 +66,22 @@
 (defn- ecs
   "Create the ECS cluster, task and associated resources"
   [provider efs db]
-  (let [container-definition {:name (p/id)
+  (let [cfg-environment (for [[k v] (p/cfg-obj "wordpress-env" {})]
+                          {:name k :value (str v)})
+        container-definition {:name (p/id)
                               :image "bitnami/wordpress"
                               :portMappings [{:protocol "tcp" :containerPort 8080}]
                               :essential true
                               :mountPoints [{:containerPath "/bitnami/wordpress"
                                              :sourceVolume "wordpress"}]
-                              :environment [{:name "MARIADB_HOST" :value (-> db :cluster :endpoint)}
-                                            {:name "WORDPRESS_DATABASE_USER" :value (-> db :cluster :masterUsername)}
-                                            {:name "WORDPRESS_DATABASE_NAME" :value (-> db :cluster :databaseName)}
-                                            {:name "PHP_MEMORY_LIMIT" :value "512M"}
-                                            {:name "enabled" :value "false"}
-                                            {:name "ALLOW_EMPTY_PASSWORD" :value "yes"}]
+                              :environment (concat
+                                             cfg-environment
+                                             [{:name "MARIADB_HOST" :value (-> db :cluster :endpoint)}
+                                              {:name "WORDPRESS_DATABASE_USER" :value (-> db :cluster :masterUsername)}
+                                              {:name "WORDPRESS_DATABASE_NAME" :value (-> db :cluster :databaseName)}
+                                              {:name "PHP_MEMORY_LIMIT" :value "512M"}
+                                              {:name "enabled" :value "false"}
+                                              {:name "ALLOW_EMPTY_PASSWORD" :value "yes"}])
                               :secrets [{:name "WORDPRESS_DATABASE_PASSWORD"
                                          :valueFrom (-> db :password-param :arn)}]}
         volume-configuration {:name "wordpress"
