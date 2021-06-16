@@ -94,6 +94,7 @@
     (let [service (ecs/service provider provider (p/id) {:vpc-id (p/cfg "vpc")
                                                          :zone (p/cfg "zone")
                                                          :subdomain (p/cfg "subdomain")
+                                                         :certificate-arn (p/cfg "certificate-arn")
                                                          :container-port 8080
                                                          :cluster-id (:id cluster)
                                                          :lb {:ingress-cidrs (p/cfg-obj "ingress-cidrs")
