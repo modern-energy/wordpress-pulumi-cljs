@@ -1,6 +1,7 @@
 (ns wordpress-pulumi-cljs.main
   (:require ["@pulumi/pulumi" :as pulumi]
             ["@pulumi/aws" :as aws]
+            ["@pulumi/awsx" :as awsx]
             [pulumi-cljs.core :as p]
             [pulumi-cljs.aws :as aws-utils]
             [pulumi-cljs.aws.ecs :as ecs]
@@ -23,7 +24,7 @@
               :rootDirectory {:creationInfo {:ownerGid 1000
                                              :ownerUid 1000
                                              :permissions "0777"}
-                              :path "/bitnami"}})]
+                              :path "/wordpress"}})]
 
     (doseq [subnet (p/cfg-obj "private-subnets")]
       (p/resource aws/efs.MountTarget (p/id subnet) efs
@@ -68,21 +69,19 @@
   [provider efs db]
   (let [cfg-environment (for [[k v] (p/cfg-obj "wordpress-env" {})]
                           {:name k :value (str v)})
+        img (.image (awsx/ecs.Image.fromPath (p/id) "./image") (p/id) provider)
         container-definition {:name (p/id)
-                              :image "bitnami/wordpress"
-                              :portMappings [{:protocol "tcp" :containerPort 8080}]
+                              :image img
+                              :portMappings [{:protocol "tcp" :containerPort 80}]
                               :essential true
-                              :mountPoints [{:containerPath "/bitnami/wordpress"
+                              :mountPoints [{:containerPath "/var/www/html"
                                              :sourceVolume "wordpress"}]
                               :environment (concat
                                              cfg-environment
-                                             [{:name "MARIADB_HOST" :value (-> db :cluster :endpoint)}
-                                              {:name "WORDPRESS_DATABASE_USER" :value (-> db :cluster :masterUsername)}
-                                              {:name "WORDPRESS_DATABASE_NAME" :value (-> db :cluster :databaseName)}
-                                              {:name "PHP_MEMORY_LIMIT" :value "512M"}
-                                              {:name "enabled" :value "false"}
-                                              {:name "ALLOW_EMPTY_PASSWORD" :value "yes"}])
-                              :secrets [{:name "WORDPRESS_DATABASE_PASSWORD"
+                                             [{:name "WORDPRESS_DB_HOST" :value (-> db :cluster :endpoint)}
+                                              {:name "WORDPRESS_DB_USER" :value (-> db :cluster :masterUsername)}
+                                              {:name "WORDPRESS_DB_NAME" :value (-> db :cluster :databaseName)}])
+                              :secrets [{:name "WORDPRESS_DB_PASSWORD"
                                          :valueFrom (-> db :password-param :arn)}]}
         volume-configuration {:name "wordpress"
                               :efsVolumeConfiguration
@@ -99,13 +98,16 @@
                                                          :zone (p/cfg "zone")
                                                          :subdomain (p/cfg "subdomain")
                                                          :certificate-arn (p/cfg "certificate-arn")
-                                                         :container-port 8080
+                                                         :container-port 80
                                                          :cluster-id (:id cluster)
+                                                         :task-count 1
                                                          :lb {:ingress-cidrs (p/cfg-obj "ingress-cidrs")
-                                                              :subnets (p/cfg-obj "public-subnets")}
+                                                              :subnets (p/cfg-obj "public-subnets")
+                                                              :health-check {:path "/health.php"
+                                                                             :timeout 10}}
                                                          :task {:container-definitions [container-definition]
-                                                                :cpu 1024
-                                                                :memory 3072
+                                                                :cpu 512
+                                                                :memory 4096
                                                                 :volumes [volume-configuration]
                                                                 :iam-statements iam-stmts
                                                                 :subnets (p/cfg-obj "private-subnets")}})]
@@ -116,6 +118,13 @@
          :toPort 2049
          :securityGroupId (-> efs :security-group :id)
          :sourceSecurityGroupId (-> service :security-group :id)})
+      (p/resource aws/ec2.SecurityGroupRule (p/id "fs-ingress-lcl") (:security-group efs)
+        {:type "ingress"
+         :protocol "tcp"
+         :fromPort 2049
+         :toPort 2049
+         :securityGroupId (-> efs :security-group :id)
+         :cidrBlocks (p/cfg-obj "efs-ingress-cidrs")})
       (p/resource aws/ec2.SecurityGroupRule (p/id "db-ingress") (:security-group db)
         {:type "ingress"
          :protocol "tcp"

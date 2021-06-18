@@ -1,0 +1,3 @@
+<?php
+echo "Health Ok";
+?>
