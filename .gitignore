@@ -2,3 +2,4 @@
 .cpcache
 .shadow-cljs
 generated
+Pulumi.dev.yaml
