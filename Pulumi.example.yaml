@@ -1,0 +1,22 @@
+config:
+  aws:region: us-east-1
+  wordpress-example:vpc: "vpc-XXXXXXXX"
+  wordpress-example:protect: false
+  wordpress-example:zone: "example.com"
+  wordpress-example:subdomain: "blog"
+  wordpress-example:certificate-arn: "arn:aws:acm:us-east-1:XXXXXXXXXX:certificate/XXXXXXXXXXXXXXXXXXXXX"
+  wordpress-example:private-subnets:
+    - "subnet-XXXXXXXXXXX00000"
+    - "subnet-XXXXXXXXXXX11111"
+  wordpress-example:public-subnets:
+    - "subnet-YYYYYYYYYYY00000"
+    - "subnet-YYYYYYYYYYY11111"
+  wordpress-example:ingress-cidrs:
+    - "50.55.90.12/32"
+  wordpress-example:efs-ingress-cidrs:
+    - "10.5.0.0/16"
+  wordpress-example:wordpress-env:
+    WORDPRESS_DEBUG: "1"
+    WORDPRESS_CONFIG_EXTRA: |
+      /* Multisite */
+      define('WP_ALLOW_MULTISITE', true);

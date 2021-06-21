@@ -6,9 +6,13 @@ Wordpress to AWS.
 
 ## Usage
 
-Run `shadow-cljs compile pulumi` to compile the ClojureScript code to JavaScript.
+1. Create a Pulumi stack, and populate the config file (using
+`Pulumi.example.dev` as a template.)
 
-Then, run `pulumi up` to deploy the stack.
+1. Run `shadow-cljs compile pulumi` to compile the ClojureScript code
+to JavaScript.
+
+1. Then, run `pulumi up` to deploy the stack.
 
 ## Configuration
 
